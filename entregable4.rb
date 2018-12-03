@@ -35,11 +35,17 @@ get '/items/*.*' do
 	an_array = params['splat'] # => ["path/to/file", "xml"]
 	searched_id = an_array[0]
 	if an_array[1] == 'json' then
-		item_result = settings.an_array_of_items.select{ |item| item.id == searched_id }
-	    status 200
-	    item_result.to_json
+		items = settings.an_array_of_items
+		p items
+		item_result = items.select{ |item| item.id == searched_id.to_i }
+		if item_result.empty? then
+			status 404
+		else
+	    	status 200
+	    	item_result[0].to_json
+	    end
 	else
-		status 404
+		status 400
 	end
 end
 
@@ -59,8 +65,8 @@ put '/items/*.*' do
 	an_array = params['splat'] # => ["path/to/file", "xml"]
 	searched_id = an_array[0]
 	if an_array[1] == 'json' then
-		item_result = settings.an_array_of_items.select{ |item| item.id == searched_id }
-		updated_item = item_result.update!(request.body.read)
+		item_result = settings.an_array_of_items.select{ |item| item.id == searched_id.to_i }
+		updated_item = item_result[0].update!(request.body.read)
 	    status 200
 	    updated_item.to_json
 	else
@@ -73,7 +79,7 @@ get '/cart/*.*' do
 	an_array = params['splat'] # => ["path/to/file", "xml"]
 	searched_user = an_array[0]
 	if an_array[1] == 'json' && (searched_user.is_a? String) then
-		cart_result = settings.shopping_carts.select{ |cart| cart['username'] == searched_user }
+		cart_result = settings.shopping_carts.select{ |cart| cart.username == searched_user }
 		if cart_result.empty? then
 			#inicializo carro vacio
 			a_cart = Shopping_cart.new(searched_user, [], Date.today )
@@ -83,9 +89,9 @@ get '/cart/*.*' do
 		    new_shopping_cart_data.to_json
 		else
 			#recorro items del carro
-			array_of_items_of_user = cart_result['items']
+			array_of_items_of_user = cart_result[0].items
 			total = array_of_items_of_user.inject(0){ |sum, temp| sum + temp.price }
-		    shopping_cart_data = { :username => "#{searched_user}", :total_amount => "#{total}", :date_of_creation => "#{cart_result.date_of_creation}" }
+		    shopping_cart_data = { :username => "#{searched_user}", :total_amount => "#{total}", :date_of_creation => "#{cart_result[0].date_of_creation}" }
 		    status 200
 		    shopping_cart_data.to_json
 		end    
@@ -100,7 +106,8 @@ put '/cart/*.*' do
 	an_array = params['splat'] # => ["path/to/file", "xml"]
 	searched_user = an_array[0]
 	if an_array[1] == 'json' && (searched_user.is_a? String) then
-		cart_result = settings.shopping_carts.select{ |cart| cart['username'] == searched_user }
+
+		cart_result = settings.shopping_carts.select{ |cart| cart.username == searched_user }
 		if cart_result.empty? then
 			#inicializo carro vacio
 			a_cart = Shopping_cart.new(searched_user, [], Date.today )
@@ -137,7 +144,7 @@ put '/cart/*.*' do
 		else
 			a_cart = cart_result[0]
 		    #datos del item a borrar	    
-		    item_result = a_cart['items'].select{ |item| item.id == searched_id }
+		    item_result = a_cart['items'].select{ |item| item.id == searched_id.to_i }
 			a_cart['items'].delete(item_result[0])
 			settings.shopping_carts << a_cart
 		    status 200
